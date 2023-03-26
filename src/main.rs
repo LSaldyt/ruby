@@ -1,10 +1,52 @@
-#![no_std]
 #![no_main]
+#![no_std]
 
 use panic_halt as _;
+use arduino_hal as hw;
 
-use arduino_hal::delay_ms;
-use arduino_hal::delay_us;
+use hw::port::Pin;
+use hw::port::mode::Output;
+use hw::port::mode::Input;
+use hw::port::PinOps;
+use hw::port::mode::Io;
+
+struct Axis<P,D,E> {
+    pulse  : Pin<Output,P>,
+    dir    : Pin<Output,D>,
+    enable : Pin<Output,E>,
+    delay  : u32
+}
+
+fn make_axis<I,P,D,E>(pulse  : Pin<I, P>, 
+                      dir    : Pin<I, D>, 
+                      enable : Pin<I, E>, 
+                      delay  : u32
+             ) -> Axis<P,D,E> where I: Io, P: PinOps, D: PinOps, E: PinOps { 
+    Axis { pulse  : pulse.into_output(), 
+           dir    : dir.into_output(), 
+           enable : enable.into_output(),
+           delay  : delay
+    }
+}
+
+impl<P: PinOps, D: PinOps, E: PinOps> Axis<P,D,E> {
+    fn turn (&mut self, steps : u32, direction : bool) {
+        self.enable.set_low();
+        if direction {
+            self.dir.set_high();
+        } else {
+            self.dir.set_low();
+        }
+        for _x in 0..steps {
+            self.pulse.set_high();
+            hw::delay_us(self.delay);
+            self.pulse.set_low();
+            hw::delay_us(self.delay);
+        }
+        self.enable.set_high();
+        true;
+    }
+}
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -13,75 +55,27 @@ fn main() -> ! {
 
     let mut led = pins.d13.into_output();
 
-    // Axis 6 (Working, calibrated)
-    // let mut pulse     = pins.d46.into_output();
-    // let mut direction = pins.d48.into_output();
-    // let mut enable    = pins.a8.into_output();
-    // let step_delay: u32 = 200;
-    
-    // Axis 5
-    let mut pulse     = pins.a0.into_output();
-    let mut direction = pins.a1.into_output();
-    let mut enable    = pins.d38.into_output();
-    let step_delay: u32 = 1000;
-    
-    // Axis 4
-    // let mut pulse     = pins.a6.into_output();
-    // let mut direction = pins.a7.into_output();
-    // let mut enable    = pins.a2.into_output();
-    // let step_delay: u32 = 600;
-    
-    //enable.set_low();
-    
-    let mut main_enable  = pins.d32.into_output();
-    
-    // Axis 3
-    // let mut pulse     = pins.d47.into_output();
-    // let mut direction = pins.d45.into_output();
-    
-    // Axis 2
-    // let mut pulse     = pins.d39.into_output();
-    // let mut direction = pins.d37.into_output();
-    
-    // Axis 1
-    // let mut pulse     = pins.d43.into_output();
-    // let mut direction = pins.d41.into_output();
-    
-    main_enable.set_high();
-    main_enable.set_low();
-    
-    // let step_delay: u32 = 4000;
+    let mut ax6 = Axis{
+        pulse:  pins.d46.into_output(),
+        dir:    pins.d48.into_output(),
+        enable: pins.a8.into_output(),
+        delay:  200
+    };
 
-    direction.set_low(); // positive direction
-    // direction.set_high(); // negative direction
-    enable.set_low();
-                         
-    let steps: u32      = 10000;
+    // let mut ax1 = make_axis(pins.d43, pins.d41, pins.d32, 4000);
+    // let mut ax2 = make_axis(pins.d39, pins.d37, pins.d32, 4000);
+    // let mut ax3 = make_axis(pins.d47, pins.d45, pins.d32, 4000);
+    // let mut ax4 = make_axis(pins.a6,  pins.a7,  pins.a2,  600);
+    // let mut ax5 = make_axis(pins.a0,  pins.a1,  pins.d38, 1000);
+    // let mut ax6 = make_axis(pins.d46, pins.d48, pins.a8,  200);
 
     led.set_high();
-
-    for _x in 0..steps {
-        pulse.set_high();
-        led.set_high();
-        delay_us(step_delay);
-        pulse.set_low();
-        led.set_low();
-        delay_us(step_delay);
-    }
-
-    enable.set_high();
-    main_enable.set_high();
-
-    for _x in 0..1000 {
-        led.set_high();
-        delay_ms(100);
-        led.set_low();
-    }
-
+    ax6.turn(10000, true);
+    // ax6.turn(6000, false);
     led.set_low();
 
     loop {
         led.toggle();
-        arduino_hal::delay_ms(100);
+        hw::delay_ms(100);
     }
 }
