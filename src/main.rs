@@ -21,7 +21,7 @@ fn main() -> ! {
         en6  : pins.a8 .into_output()
     };
 
-    // Pulse, direction, delay
+    // Pulse, direction, main, delay
     let mut ax1 = make_axis(pins.d43, pins.d41, true, 4000);
     let mut ax2 = make_axis(pins.d39, pins.d37, true, 4000);
     let mut ax3 = make_axis(pins.d47, pins.d45, true, 4000);

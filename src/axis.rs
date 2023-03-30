@@ -8,57 +8,47 @@ pub mod axis {
     use hw::port::PinOps;
     use hw::port::mode::Io;
 
+    pub fn set_pin<P>(pin : &mut Pin<Output, P>, setting : bool) 
+        where P : PinOps {
+        if setting {
+            pin.set_high();
+        } else {
+            pin.set_low();
+        }
+    }
+
     pub struct Axis<P,D> {
         pulse  : Pin<Output,P>,
         dir    : Pin<Output,D>,
-        large  : bool,
+        main   : bool,
         delay  : u32
     }
 
     pub fn make_axis<I,P,D>(pulse  : Pin<I, P>, 
-                        dir    : Pin<I, D>, 
-                        large  : bool,
-                        delay  : u32
+                            dir    : Pin<I, D>, 
+                            main   : bool,
+                            delay  : u32
                  ) -> Axis<P,D> where I: Io, P: PinOps, D: PinOps
     { 
-        Axis { pulse  : pulse .into_output(), 
-               dir    : dir   .into_output(), 
-               large  : large,
-               delay  : delay
+        Axis { pulse : pulse .into_output(), 
+               dir   : dir   .into_output(), 
+               main  : main,
+               delay : delay
         }
     }
 
     impl<P: PinOps, D: PinOps> Axis<P,D> {
         pub fn step<P1,P2,P3,P4,P5> (&mut self, enable : &mut Enable<P1,P2,P3,P4,P5>, steps : u32, direction : bool) 
         where P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps{
-            if direction {
-                self.dir.set_high();
-            } else {
-                self.dir.set_low();
-            }
-            if self.large {
-                enable.main.set_low();
-            } else {
-                enable.en4.set_low();
-                enable.en5.set_low();
-                enable.en6.set_low();
-            }
-            enable.led.set_high();
+            set_pin(&mut self.dir, direction);
+            enable.set(true, self.main);
             for _x in 0..steps {
                 self.pulse.set_high();
                 hw::delay_us(self.delay);
                 self.pulse.set_low();
                 hw::delay_us(self.delay);
             }
-            if self.large {
-                enable.main.set_high();
-            } else {
-                enable.en4.set_high();
-                enable.en5.set_high();
-                enable.en6.set_high();
-            }
-            enable.led.set_low();
-            true;
+            enable.set(false, self.main);
         }
     }
 
@@ -69,4 +59,19 @@ pub mod axis {
         pub en5  : Pin<Output, P4>,
         pub en6  : Pin<Output, P5>
     }
+
+    impl <P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps> Enable<P1,P2,P3,P4,P5> {
+        pub fn set (&mut self, setting : bool, main : bool) {
+            set_pin(&mut self.led, setting);
+            if main {
+                set_pin(&mut self.main, setting);
+            } else {
+                set_pin(&mut self.en4, setting);
+                set_pin(&mut self.en5, setting);
+                set_pin(&mut self.en6, setting);
+            }
+        }
+
+    }
+    
 }
