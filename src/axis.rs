@@ -22,8 +22,8 @@ pub mod axis {
         dir_pin    : Pin<Output,D>,
         is_main    : bool,
         delay      : u32,
-        resolution : u8,
-        gear_ratio : f32,
+        // resolution : u8,
+        // gear_ratio : f32,
         conversion : f32
     }
 
@@ -39,8 +39,8 @@ pub mod axis {
                dir_pin   : dir_pin   .into_output(), 
                is_main,
                delay,
-               resolution,
-               gear_ratio,
+               // resolution,
+               // gear_ratio,
                conversion : 360.0 / 200. / (resolution as f32) / gear_ratio
         }
     }
@@ -52,14 +52,14 @@ pub mod axis {
                                      direction : bool) 
         where P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps {
             set_pin(&mut self.dir_pin, direction);
-            enable.set(true, self.is_main);
+            enable.set(false, self.is_main);
             for _x in 0..steps {
                 self.pulse_pin.set_high();
                 hw::delay_us(self.delay);
                 self.pulse_pin.set_low();
                 hw::delay_us(self.delay);
             }
-            enable.set(false, self.is_main);
+            enable.set(true, self.is_main);
         }
 
         pub fn angle_to_steps(&mut self, angle : f32) -> (bool, u32) {
@@ -69,6 +69,14 @@ pub mod axis {
                 abs_angle = -1.0 * angle; // abs(), since no std:: available
             }
             return (direction, (abs_angle / self.conversion) as u32);
+        }
+
+        pub fn rotate<P1,P2,P3,P4,P5> (&mut self, 
+                                       enable : &mut Enable<P1,P2,P3,P4,P5>,
+                                       angle : f32) 
+        where P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps {
+            let (direction, steps) = self.angle_to_steps(angle);
+            self.step(enable, steps, direction);
         }
     }
 
@@ -90,6 +98,14 @@ pub mod axis {
                 set_pin(&mut self.en5, setting);
                 set_pin(&mut self.en6, setting);
             }
+        }
+
+        pub fn off (&mut self) {
+            set_pin(&mut self.led,  false);
+            set_pin(&mut self.main, true);
+            set_pin(&mut self.en4,  true);
+            set_pin(&mut self.en5,  true);
+            set_pin(&mut self.en6,  true);
         }
     }
     

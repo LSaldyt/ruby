@@ -35,3 +35,6 @@ debug = true
 lto = true
 opt-level = "s"
 strip = true        # Strip symbols from binary*
+
+[profile.dev.package.compiler_builtins]
+overflow-checks = false
