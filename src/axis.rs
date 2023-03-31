@@ -18,37 +18,57 @@ pub mod axis {
     }
 
     pub struct Axis<P,D> {
-        pulse  : Pin<Output,P>,
-        dir    : Pin<Output,D>,
-        main   : bool,
-        delay  : u32
+        pulse_pin  : Pin<Output,P>,
+        dir_pin    : Pin<Output,D>,
+        is_main    : bool,
+        delay      : u32,
+        resolution : u8,
+        gear_ratio : f32,
+        conversion : f32
     }
 
-    pub fn make_axis<I,P,D>(pulse  : Pin<I, P>, 
-                            dir    : Pin<I, D>, 
-                            main   : bool,
-                            delay  : u32
+    pub fn make_axis<I,P,D>(pulse_pin  : Pin<I, P>, 
+                            dir_pin    : Pin<I, D>, 
+                            is_main    : bool,
+                            delay      : u32,
+                            resolution : u8,
+                            gear_ratio : f32
                  ) -> Axis<P,D> where I: Io, P: PinOps, D: PinOps
     { 
-        Axis { pulse : pulse .into_output(), 
-               dir   : dir   .into_output(), 
-               main  : main,
-               delay : delay
+        Axis { pulse_pin : pulse_pin .into_output(), 
+               dir_pin   : dir_pin   .into_output(), 
+               is_main,
+               delay,
+               resolution,
+               gear_ratio,
+               conversion : 360.0 / 200. / (resolution as f32) / gear_ratio
         }
     }
 
     impl<P: PinOps, D: PinOps> Axis<P,D> {
-        pub fn step<P1,P2,P3,P4,P5> (&mut self, enable : &mut Enable<P1,P2,P3,P4,P5>, steps : u32, direction : bool) 
-        where P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps{
-            set_pin(&mut self.dir, direction);
-            enable.set(true, self.main);
+        pub fn step<P1,P2,P3,P4,P5> (&mut self, 
+                                     enable    : &mut Enable<P1,P2,P3,P4,P5>, 
+                                     steps     : u32, 
+                                     direction : bool) 
+        where P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps {
+            set_pin(&mut self.dir_pin, direction);
+            enable.set(true, self.is_main);
             for _x in 0..steps {
-                self.pulse.set_high();
+                self.pulse_pin.set_high();
                 hw::delay_us(self.delay);
-                self.pulse.set_low();
+                self.pulse_pin.set_low();
                 hw::delay_us(self.delay);
             }
-            enable.set(false, self.main);
+            enable.set(false, self.is_main);
+        }
+
+        pub fn angle_to_steps(&mut self, angle : f32) -> (bool, u32) {
+            let direction : bool = angle.is_sign_positive();
+            let mut abs_angle : f32 = angle;
+            if !direction {
+                abs_angle = -1.0 * angle; // abs(), since no std:: available
+            }
+            return (direction, (abs_angle / self.conversion) as u32);
         }
     }
 
@@ -61,9 +81,9 @@ pub mod axis {
     }
 
     impl <P1: PinOps, P2: PinOps, P3: PinOps, P4: PinOps, P5: PinOps> Enable<P1,P2,P3,P4,P5> {
-        pub fn set (&mut self, setting : bool, main : bool) {
+        pub fn set (&mut self, setting : bool, is_main : bool) {
             set_pin(&mut self.led, setting);
-            if main {
+            if is_main {
                 set_pin(&mut self.main, setting);
             } else {
                 set_pin(&mut self.en4, setting);
@@ -71,7 +91,6 @@ pub mod axis {
                 set_pin(&mut self.en6, setting);
             }
         }
-
     }
     
 }
