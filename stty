@@ -1,0 +1,4 @@
+#!/bin/bash
+stty 921600 < /dev/ttyACM0
+stty 921600 -F /dev/ttyACM0
+cat /dev/ttyACM0
