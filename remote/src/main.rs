@@ -6,19 +6,16 @@ const delimeter : u8     = 10;
 const header_len : usize = 6;
 
 fn make_command(axis_index : u8, rot : f32) ->[u8; header_len] {
-    // println!("{}", rot);
-    // println!("{:?}", rot.to_be_bytes());
-    // println!("{:?}", rot.to_le_bytes());
     let mut command : [u8; header_len] = [0; header_len];
-    command[0] = 6;
+    command[0] = axis_index;
     command[1..5].copy_from_slice(&rot.to_le_bytes());
     command[5] = delimeter;
     return command;
 }
 
 fn main() {
-    let forward  = make_command(6,  90.0);
-    let backward = make_command(6, -90.0);
+    let forward  = make_command(4,  60.0);
+    let backward = make_command(4, -60.0);
 
     println!("Sending messages to /dev/ttyACM0");
     let dur = Duration::from_millis(100);
@@ -42,7 +39,7 @@ fn main() {
             let buf_str : String = chars.iter().collect::<String>();
             println!("{:?}", buf_str);
         }
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(5000));
         if i % 2 == 0 {
             println!("forward!");
             port.write(&forward).expect("serial write failed");

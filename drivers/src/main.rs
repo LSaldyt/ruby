@@ -30,12 +30,12 @@ fn main() -> ! {
     enable.off(); // To make sure
 
     // // make_axis() arguments: Pulse, direction, main, delay, resolution, gear_ratio
-    // let mut ax1 = make_axis(pins.d43, pins.d41, true, 4000,  8, 4.8); // 96/20 = 4.8
-    // let mut ax2 = make_axis(pins.d39, pins.d37, true, 4000,  8, 4.0); // ratio 4
-    // let mut ax3 = make_axis(pins.d47, pins.d45, true, 4000,  8, 5.0); // ratio 5
-    // let mut ax4 = make_axis(pins.a6,  pins.a7,  false, 200, 32, 2.8); // 56/20 = 2.8
-    // let mut ax5 = make_axis(pins.a0,  pins.a1,  false, 200, 32, 2.1); // 42/20 = 2.1
-    // let mut ax6 = make_axis(pins.d46, pins.d48, false, 200, 32, 1.0); // ratio 1
+    let mut ax1 = make_axis(pins.d43, pins.d41, true, 4000,  8, 4.8); // 96/20 = 4.8
+    let mut ax2 = make_axis(pins.d39, pins.d37, true, 4000,  8, 4.0); // ratio 4
+    let mut ax3 = make_axis(pins.d47, pins.d45, true, 4000,  8, 5.0); // ratio 5
+    let mut ax4 = make_axis(pins.a6,  pins.a7,  false, 200, 32, 2.8); // 56/20 = 2.8
+    let mut ax5 = make_axis(pins.a0,  pins.a1,  false, 200, 32, 2.1); // 42/20 = 2.1
+    let mut ax6 = make_axis(pins.d46, pins.d48, false, 200, 32, 1.0); // ratio 1
 
     // ax6.rotate(&mut enable, 360.0);
     // ax6.rotate(&mut enable, -360.0);
@@ -73,6 +73,16 @@ fn main() -> ! {
                 Ok(sub_buff) => {
                     let rotation = f32::from_le_bytes(sub_buff);
                     ufmt::uwriteln!(&mut serial, "Parsed float!").unwrap();
+                    match axis_index {
+                        1 => { ax1.rotate(&mut enable, rotation); }
+                        2 => { ax2.rotate(&mut enable, rotation); }
+                        3 => { ax3.rotate(&mut enable, rotation); }
+                        4 => { ax4.rotate(&mut enable, rotation); }
+                        5 => { ax5.rotate(&mut enable, rotation); }
+                        6 => { ax6.rotate(&mut enable, rotation); }
+                        _ => { ufmt::uwriteln!(&mut serial, "Invalid axis index!").unwrap(); }
+                    }
+
                 }
                 Err(_) => {
                     ufmt::uwriteln!(&mut serial, "Error parsing float!").unwrap();
