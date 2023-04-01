@@ -54,20 +54,40 @@ fn main() -> ! {
     let mut i : usize = 0;
 
     const CAPACITY : usize = 512;
-    let mut comm_buffer = [0; CAPACITY];
+    let mut comm_buffer : [u8; CAPACITY] = [0; CAPACITY];
 
     loop {
         enable.led.toggle();
 
         let b = nb::block!(serial.read()).unwrap();
-        if b == 10 { // Newline character
-            let comm_str = &comm_buffer[0..i+1];
-            ufmt::uwriteln!(&mut serial, "{:?}", comm_str).unwrap();
+        if b == 10 && i == 5 { // Newline character
+            if i != 5 {
+                ufmt::uwriteln!(&mut serial, "Invalid number of bytes received!!").unwrap();
+                // panic!("Ahhhhhh");
+                i = 0;
+                continue;
+            }
+            ufmt::uwriteln!(&mut serial, "parsing..").unwrap();
+            let axis_index = comm_buffer.get(0).expect("Need axis index");
+            match comm_buffer[1..i].try_into() {
+                Ok(sub_buff) => {
+                    let rotation = f32::from_le_bytes(sub_buff);
+                    ufmt::uwriteln!(&mut serial, "Parsed float!").unwrap();
+                }
+                Err(_) => {
+                    ufmt::uwriteln!(&mut serial, "Error parsing float!").unwrap();
+                }
+            }
+            ufmt::uwriteln!(&mut serial, "{}", axis_index).unwrap();
             i = 0; // Reset position
         } else {
             comm_buffer[i] = b;
             i += 1;
+            if i > 5 {
+                ufmt::uwriteln!(&mut serial, "too many bytes have been read..").unwrap();
+            }
             if i == 512 {
+                ufmt::uwriteln!(&mut serial, "fuck! we're outta space man").unwrap();
                 panic!("fuck! we're outta space man");
             }
         }

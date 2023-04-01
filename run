@@ -1,0 +1,7 @@
+#!/bin/bash
+cd drivers
+sudo cargo run
+cd ..
+cd remote
+cargo run
+cd ..
