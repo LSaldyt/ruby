@@ -57,7 +57,7 @@ fn main() -> ! {
             ufmt::uwriteln!(&mut serial, "parsing..").unwrap();
             match comm_buffer[0..4].try_into() {
                 Ok(sub_buff) => { command_index = u32::from_le_bytes(sub_buff); }
-                Err(_)       => { ufmt::uwriteln!(&mut serial, "Error parsing command index"); }
+                Err(_)       => { ufmt::uwriteln!(&mut serial, "Error parsing command index").unwrap(); }
             }
             let axis_index = comm_buffer.get(4).expect("Need axis index");
             match comm_buffer[5..i].try_into() {
