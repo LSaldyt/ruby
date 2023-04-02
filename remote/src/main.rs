@@ -2,20 +2,21 @@ use std::time::Duration;
 use std::thread;
 use std::str;
 
-const delimeter : u8     = 10;
-const header_len : usize = 6;
+const DELIMITER : u8     = 10;
+const HEADER_LEN : usize = 10;
 
-fn make_command(axis_index : u8, rot : f32) ->[u8; header_len] {
-    let mut command : [u8; header_len] = [0; header_len];
-    command[0] = axis_index;
-    command[1..5].copy_from_slice(&rot.to_le_bytes());
-    command[5] = delimeter;
+fn make_command(command_index: u32, axis_index : u8, rot : f32) ->[u8; HEADER_LEN] {
+    let mut command : [u8; HEADER_LEN] = [0; HEADER_LEN];
+    command[0..4].copy_from_slice(&command_index.to_le_bytes());
+    command[4] = axis_index;
+    command[5..9].copy_from_slice(&rot.to_le_bytes());
+    command[9] = DELIMITER;
     return command;
 }
 
 fn main() {
-    let forward  = make_command(4,  60.0);
-    let backward = make_command(4, -60.0);
+    let forward  = make_command(1, 6,  60.0);
+    let backward = make_command(2, 6, -60.0);
 
     println!("Sending messages to /dev/ttyACM0");
     let dur = Duration::from_millis(100);

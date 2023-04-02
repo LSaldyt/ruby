@@ -37,39 +37,30 @@ fn main() -> ! {
     let mut ax5 = make_axis(pins.a0,  pins.a1,  false, 200, 32, 2.1); // 42/20 = 2.1
     let mut ax6 = make_axis(pins.d46, pins.d48, false, 200, 32, 1.0); // ratio 1
 
-    // ax6.rotate(&mut enable, 360.0);
-    // ax6.rotate(&mut enable, -360.0);
-    // ax5.rotate(&mut enable, 360.0);
-    // ax5.rotate(&mut enable, -360.0);
-    // ax3.rotate(&mut enable, -15.0);
-    // ax4.rotate(&mut enable, 90.0);
-    // ax4.rotate(&mut enable, -90.0);
-    // ax3.rotate(&mut enable, -90.0);
-    // ax3.rotate(&mut enable, 60.0);
-    // ax2.rotate(&mut enable, -30.0);
-    // ax2.rotate(&mut enable, 15.0);
-    // ax1.rotate(&mut enable, -15.0);
-    // ax1.rotate(&mut enable, 15.0);
-
     let mut i : usize = 0;
 
     const CAPACITY : usize = 512;
+    const HEADER_LEN : usize  = 9;
     let mut comm_buffer : [u8; CAPACITY] = [0; CAPACITY];
 
     loop {
         enable.led.toggle();
 
         let b = nb::block!(serial.read()).unwrap();
-        if b == 10 && i == 5 { // Newline character
-            if i != 5 {
+        if b == 10 && i == HEADER_LEN { // Newline character
+            if i != HEADER_LEN {
                 ufmt::uwriteln!(&mut serial, "Invalid number of bytes received!!").unwrap();
-                // panic!("Ahhhhhh");
                 i = 0;
                 continue;
             }
+            let mut command_index : u32 = 0;
             ufmt::uwriteln!(&mut serial, "parsing..").unwrap();
-            let axis_index = comm_buffer.get(0).expect("Need axis index");
-            match comm_buffer[1..i].try_into() {
+            match comm_buffer[0..4].try_into() {
+                Ok(sub_buff) => { command_index = u32::from_le_bytes(sub_buff); }
+                Err(_)       => { ufmt::uwriteln!(&mut serial, "Error parsing command index"); }
+            }
+            let axis_index = comm_buffer.get(4).expect("Need axis index");
+            match comm_buffer[5..i].try_into() {
                 Ok(sub_buff) => {
                     let rotation = f32::from_le_bytes(sub_buff);
                     ufmt::uwriteln!(&mut serial, "Parsed float!").unwrap();
@@ -88,15 +79,17 @@ fn main() -> ! {
                     ufmt::uwriteln!(&mut serial, "Error parsing float!").unwrap();
                 }
             }
-            ufmt::uwriteln!(&mut serial, "{}", axis_index).unwrap();
+            ufmt::uwriteln!(&mut serial, "done with command:").unwrap();
+            ufmt::uwriteln!(&mut serial, "axis_index: {}", axis_index).unwrap();
+            ufmt::uwriteln!(&mut serial, "command_index: {}", command_index).unwrap();
             i = 0; // Reset position
         } else {
             comm_buffer[i] = b;
             i += 1;
-            if i > 5 {
+            if i > HEADER_LEN {
                 ufmt::uwriteln!(&mut serial, "too many bytes have been read..").unwrap();
             }
-            if i == 512 {
+            if i == CAPACITY {
                 ufmt::uwriteln!(&mut serial, "fuck! we're outta space man").unwrap();
                 panic!("fuck! we're outta space man");
             }
