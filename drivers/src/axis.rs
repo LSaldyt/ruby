@@ -24,7 +24,8 @@ pub mod axis {
         delay      : u32,
         // resolution : u8,
         // gear_ratio : f32,
-        conversion : f32
+        conversion : f32,
+        steps_moved: i64
     }
 
     pub fn make_axis<I,P,D>(pulse_pin  : Pin<I, P>, 
@@ -41,7 +42,8 @@ pub mod axis {
                delay,
                // resolution,
                // gear_ratio,
-               conversion : 360.0 / 200. / (resolution as f32) / gear_ratio
+               conversion : 360.0 / 200. / (resolution as f32) / gear_ratio,
+               steps_moved : 0
         }
     }
 
@@ -58,6 +60,11 @@ pub mod axis {
                 hw::delay_us(self.delay);
                 self.pulse_pin.set_low();
                 hw::delay_us(self.delay);
+                if direction {
+                    self.steps_moved += 1;
+                } else {
+                    self.steps_moved -= 1;
+                }
             }
             enable.set(true, self.is_main);
         }
@@ -106,6 +113,14 @@ pub mod axis {
             set_pin(&mut self.en4,  true);
             set_pin(&mut self.en5,  true);
             set_pin(&mut self.en6,  true);
+        }
+
+        pub fn on (&mut self) {
+            set_pin(&mut self.led,  true);
+            set_pin(&mut self.main, false);
+            set_pin(&mut self.en4,  true); // conflicts with main axis
+            set_pin(&mut self.en5,  true); // conflicts with main axis
+            set_pin(&mut self.en6,  false);
         }
     }
     
