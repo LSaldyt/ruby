@@ -25,7 +25,8 @@ fn main() {
         .open().expect("Failed to open port");
     thread::sleep(Duration::from_millis(1000));
     let mut i : u32 = 0;
-    let mut bytes_read = 0;
+    let mut bytes_read : usize = 0;
+    let mut command_complete : bool = true; // By default, ready to send new commands
     loop {
         let mut serial_buf : Vec<u8> = vec![0; 512];
         bytes_read = match port.read(serial_buf.as_mut_slice()) {
@@ -38,17 +39,30 @@ fn main() {
                 .filter(|c| *c != '\0')
                 .collect::<Vec<_>>();
             let buf_str : String = chars.iter().collect::<String>();
-            println!("{:?}", buf_str);
+            for line in buf_str.lines() {
+                if line.starts_with("command_index") {
+                    let split = line.split("command_index: ")
+                                    .collect::<Vec<_>>();
+                    let complete_index : u32 = split[1].parse::<u32>().unwrap();
+                    println!("Parsed complete command {}", complete_index);
+                    command_complete = true;
+                }
+            }
+            println!("{}", buf_str);
         }
-        thread::sleep(Duration::from_millis(5000));
-        if i % 2 == 0 {
-            println!("forward!");
-            port.write(&forward).expect("serial write failed");
+        if command_complete {
+            if i % 2 == 0 {
+                println!("forward!");
+                port.write(&forward).expect("serial write failed");
+            } else {
+                println!("backward!");
+                port.write(&backward).expect("serial write failed");
+            }
+            println!("sent output!");
+            command_complete = false; // Wait until it is acknowledged!
+            i += 1;
         } else {
-            println!("backward!");
-            port.write(&backward).expect("serial write failed");
+            thread::sleep(Duration::from_millis(100)); // Significantly reduced
         }
-        println!("sent output!");
-        i += 1;
     }
 }
